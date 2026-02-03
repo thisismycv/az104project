@@ -1,0 +1,8 @@
+{
+  "virtualMachineName": { "value": "testing77111FJ" },
+  "adminUsername": { "value": "azureuser" },
+  "adminPassword": { "value": "YourStrongPasswordHere!" },
+  "virtualNetworkName": { "value": "example-vnet" },
+  "subnetName": { "value": "subnet1" }
+}
+

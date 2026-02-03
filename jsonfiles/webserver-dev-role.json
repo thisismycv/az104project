@@ -1,0 +1,23 @@
+{
+  "Name": "WebServer Developer",
+  "Description": "Deploy and manage web application code, restart services",
+  "Actions": [
+    "Microsoft.Compute/virtualMachines/read",
+    "Microsoft.Compute/virtualMachines/restart/action",
+    "Microsoft.Compute/virtualMachines/start/action",
+    "Microsoft.Compute/virtualMachines/runCommand/action",
+    "Microsoft.Network/networkInterfaces/read",
+    "Microsoft.Network/publicIPAddresses/read",
+    "Microsoft.Storage/storageAccounts/read",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/read",
+    "Microsoft.Storage/storageAccounts/blobServices/containers/write"
+  ],
+  "NotActions": [
+    "Microsoft.Compute/virtualMachines/delete",
+    "Microsoft.Compute/virtualMachines/write",
+    "Microsoft.Network/networkSecurityGroups/write"
+  ],
+  "AssignableScopes": [
+    "/subscriptions/30ca8452-076b-463e-846c-e3e14e975950/resourceGroups/virtualmachines-rg"
+  ]
+}
