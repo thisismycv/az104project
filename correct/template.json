@@ -26,68 +26,69 @@
 
   "resources": [
 
-    // ---------------- NIC WEB ----------------
-    {
-      "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2022-11-01",
-      "name": "[variables('nicWeb')]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnet1'))]"
-              },
-              "privateIPAllocationMethod": "Dynamic"
-            }
-          }
-        ]
-      }
-    },
 
-    // ---------------- NIC DB ----------------
-    {
-      "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2022-11-01",
-      "name": "[variables('nicDb')]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnet2'))]"
-              },
-              "privateIPAllocationMethod": "Dynamic"
-            }
-          }
-        ]
-      }
+   // ---------------- NICs with existing NSGs ----------------
+{
+  "type": "Microsoft.Network/networkInterfaces",
+  "apiVersion": "2022-11-01",
+  "name": "[variables('nicWeb')]",
+  "location": "[parameters('location')]",
+  "properties": {
+    "networkSecurityGroup": {
+      "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-subnet1')]"
     },
-
-    // ---------------- NIC WINDOWS ----------------
-    {
-      "type": "Microsoft.Network/networkInterfaces",
-      "apiVersion": "2022-11-01",
-      "name": "[variables('nicW11')]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "ipConfigurations": [
-          {
-            "name": "ipconfig1",
-            "properties": {
-              "subnet": {
-                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnet3'))]"
-              },
-              "privateIPAllocationMethod": "Dynamic"
-            }
-          }
-        ]
+    "ipConfigurations": [
+      {
+        "name": "ipconfig1",
+        "properties": {
+          "subnet": { "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnet1'))]" },
+          "privateIPAllocationMethod": "Dynamic"
+        }
       }
+    ]
+  }
+},
+{
+  "type": "Microsoft.Network/networkInterfaces",
+  "apiVersion": "2022-11-01",
+  "name": "[variables('nicDb')]",
+  "location": "[parameters('location')]",
+  "properties": {
+    "networkSecurityGroup": {
+      "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-subnet2')]"
     },
+    "ipConfigurations": [
+      {
+        "name": "ipconfig1",
+        "properties": {
+          "subnet": { "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnet2'))]" },
+          "privateIPAllocationMethod": "Dynamic"
+        }
+      }
+    ]
+  }
+},
+{
+  "type": "Microsoft.Network/networkInterfaces",
+  "apiVersion": "2022-11-01",
+  "name": "[variables('nicW11')]",
+  "location": "[parameters('location')]",
+  "properties": {
+    "networkSecurityGroup": {
+      "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-subnet3')]"
+    },
+    "ipConfigurations": [
+      {
+        "name": "ipconfig1",
+        "properties": {
+          "subnet": { "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnet3'))]" },
+          "privateIPAllocationMethod": "Dynamic"
+        }
+      }
+    ]
+  }
+}
+,
 
     // ================= VM WEB (DEBIAN) =================
     {
