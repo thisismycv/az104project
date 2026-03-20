@@ -1,193 +1,156 @@
 #!/bin/bash
 set -e
 
-# ============================================================
-# Full standalone Azure deployment script
-# Resource Group, Networking, VMs, Public IPs, Log Analytics, Agent
-# ============================================================
-
-# -------------------------
-# Variables
-# -------------------------
 RG="virtualmachines-rg"
 LOCATION="eastus"
 ADMIN_USERNAME="azureuser"
-ADMIN_PASSWORD="WiD0GQSv1X1V5Ibv"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:?Error: ADMIN_PASSWORD environment variable is not set}"
 WORKSPACE="lgvms1"
 VMS=("vm-web" "vm-db" "vm-w11")
 
-# -------------------------
-# Ensure Azure CLI extensions are installed
-# -------------------------
 az config set extension.use_dynamic_install=yes_without_prompt
-az config set extension.dynamic_install_allow_preview=true
 az extension add --name monitor-control-service --yes || true
 
-# ============================================================
-echo "=========================================================="
-echo "Step 1: Create Resource Group: $RG"
-echo "=========================================================="
-az group create --name "$RG" --location "$LOCATION"
-echo "Resource Group created successfully."
-sleep 5
 
-# ============================================================
-echo "=========================================================="
-echo "Step 2: Deploy Networking (VNet, Subnets, NSGs)"
-echo "=========================================================="
+echo "Step 1 - RG"
+az group create -n "$RG" -l "$LOCATION"
+
+
+echo "Step 2 - Network"
 az deployment group create \
-  --resource-group "$RG" \
+  -g "$RG" \
   --template-file templatenetworking.json \
   --parameters location="$LOCATION"
-echo "Networking deployed successfully."
-sleep 5
 
-# ============================================================
-echo "=========================================================="
-echo "Step 3: Deploy VMs"
-echo "=========================================================="
+
+echo "Step 3 - VMs"
 az deployment group create \
-  --resource-group "$RG" \
+  -g "$RG" \
   --template-file deployvm.json \
   --parameters \
     adminUsername="$ADMIN_USERNAME" \
     adminPassword="$ADMIN_PASSWORD" \
     location="$LOCATION"
-echo "VMs deployed successfully."
-sleep 10
 
-# ============================================================
-echo "=========================================================="
-echo "Step 4: Assign Public IPs"
-echo "=========================================================="
+
+echo "Waiting for VM provisioning..."
 for VM in "${VMS[@]}"; do
-    IP_NAME="public-ip-${VM}"
-    echo "--- Processing $VM ---"
-
-    NIC_ID=$(az vm show \
-        --resource-group "$RG" \
-        --name "$VM" \
-        --query "networkProfile.networkInterfaces[0].id" \
-        -o tsv 2>/dev/null)
-
-    if [ -z "$NIC_ID" ]; then
-        echo "WARNING: Could not find NIC for $VM, skipping..."
-        continue
-    fi
-
-    NIC_NAME=$(basename "$NIC_ID")
-
-    az network public-ip create \
-        --resource-group "$RG" \
-        --name "$IP_NAME" \
-        --location "$LOCATION" \
-        --sku Standard \
-        --allocation-method Static \
-        --output none
-
-    az network public-ip wait \
-        --resource-group "$RG" \
-        --name "$IP_NAME" \
-        --created
-
-    az network nic ip-config update \
-        --resource-group "$RG" \
-        --nic-name "$NIC_NAME" \
-        --name ipconfig1 \
-        --public-ip-address "$IP_NAME" \
-        --output none
-
-    ASSIGNED_IP=$(az network public-ip show \
-        --resource-group "$RG" \
-        --name "$IP_NAME" \
-        --query ipAddress -o tsv)
-
-    echo "$VM --> $ASSIGNED_IP"
+  echo "Waiting for $VM to be created..."
+  az vm wait \
+    --created \
+    -g "$RG" \
+    -n "$VM"
 done
-sleep 5
 
-# ============================================================
-echo "=========================================================="
-echo "Step 5: Deploy Log Analytics Workspace"
-echo "=========================================================="
+
+echo "Step 4 - Public IP"
+for VM in "${VMS[@]}"; do
+
+  NIC_ID=$(az vm show -g "$RG" -n "$VM" --query "networkProfile.networkInterfaces[0].id" -o tsv)
+  NIC_NAME=$(basename "$NIC_ID")
+  IP_NAME="public-ip-$VM"
+
+  az network public-ip create \
+    -g "$RG" \
+    -n "$IP_NAME" \
+    -l "$LOCATION" \
+    --sku Standard \
+    --allocation-method Static
+
+  az network nic ip-config update \
+    -g "$RG" \
+    --nic-name "$NIC_NAME" \
+    -n ipconfig1 \
+    --public-ip-address "$IP_NAME"
+
+done
+
+
+echo "Step 5 - Workspace"
 az monitor log-analytics workspace create \
-  --resource-group "$RG" \
-  --workspace-name "$WORKSPACE" \
-  --location "$LOCATION" \
-  --output none
-sleep 5
+  -g "$RG" \
+  -n "$WORKSPACE" \
+  -l "$LOCATION"
 
-# ============================================================
-echo "=========================================================="
-echo "Step 6: Install Azure Monitor Agent & Data Collection Rule"
-echo "=========================================================="
-
-# Get Workspace ID
 WS_ID=$(az monitor log-analytics workspace show \
-    --resource-group "$RG" \
-    --workspace-name "$WORKSPACE" \
-    --query id -o tsv)
+  -g "$RG" \
+  -n "$WORKSPACE" \
+  --query id -o tsv)
 
-# Create Data Collection Rule (DCR) with correct dictionary syntax
+
+echo "Step 6 - DCR"
 az monitor data-collection rule create \
-    --name dcr-vms \
-    --resource-group "$RG" \
-    --location "$LOCATION" \
-    --destinations "{ \"logAnalytics\": { \"workspaceResourceId\": \"$WS_ID\" } }" \
-    --data-flows "{ \"streams\": [\"Microsoft-Perf\"], \"destinations\": [\"logAnalytics\"] }" \
-    --output none
-sleep 5
+  -g "$RG" \
+  -n dcr-vms \
+  -l "$LOCATION" \
+  --destinations '{
+    "logAnalytics":[
+      {
+        "name":"logAnalytics",
+        "workspaceResourceId":"'"$WS_ID"'"
+      }
+    ]
+  }' \
+  --data-flows '[
+    {
+      "streams":["Microsoft-Perf"],
+      "destinations":["logAnalytics"]
+    }
+  ]'
 
-# Install Azure Monitor Agent and associate DCR for each VM
+
+echo "Step 7 - Install agent"
 for VM in "${VMS[@]}"; do
-    echo "Installing Azure Monitor agent on $VM..."
 
-    # Linux Agent (safe on Windows too)
+  echo "Processing $VM"
+
+  OS=$(az vm show \
+    -g "$RG" \
+    -n "$VM" \
+    --query "storageProfile.osDisk.osType" \
+    -o tsv)
+
+  echo "OS = $OS"
+
+  if [ "$OS" = "Linux" ]; then
     az vm extension set \
-        --resource-group "$RG" \
-        --vm-name "$VM" \
-        --name AzureMonitorLinuxAgent \
-        --publisher Microsoft.Azure.Monitor \
-        --enable-auto-upgrade true \
-        --output none || true
-
-    # Windows Agent
+      -g "$RG" \
+      --vm-name "$VM" \
+      --publisher Microsoft.Azure.Monitor \
+      --name AzureMonitorLinuxAgent \
+      --version 1.0
+  else
     az vm extension set \
-        --resource-group "$RG" \
-        --vm-name "$VM" \
-        --name AzureMonitorWindowsAgent \
-        --publisher Microsoft.Azure.Monitor \
-        --enable-auto-upgrade true \
-        --output none || true
+      -g "$RG" \
+      --vm-name "$VM" \
+      --publisher Microsoft.Azure.Monitor \
+      --name AzureMonitorWindowsAgent \
+      --version 1.0
+  fi
 
-    # Associate VM with Data Collection Rule
-    VM_ID=$(az vm show \
-        --resource-group "$RG" \
-        --name "$VM" \
-        --query id -o tsv)
+  echo "Verifying extension provisioning state for $VM..."
+  PROVISION_STATE=$(az vm extension show \
+    -g "$RG" \
+    --vm-name "$VM" \
+    --name "$([ "$OS" = "Linux" ] && echo AzureMonitorLinuxAgent || echo AzureMonitorWindowsAgent)" \
+    --query "provisioningState" -o tsv)
 
-    az monitor data-collection rule association create \
-        --name assoc-$VM \
-        --rule dcr-vms \
-        --resource "$VM_ID" \
-        --output none
-done
-sleep 5
+  if [ "$PROVISION_STATE" != "Succeeded" ]; then
+    echo "ERROR: Extension on $VM did not provision successfully. State: $PROVISION_STATE"
+    exit 1
+  fi
 
-# ============================================================
-echo "=========================================================="
-echo "Deployment Complete"
-echo "=========================================================="
+  echo "Extension on $VM provisioned successfully."
 
-echo "Public IPs:"
-for VM in "${VMS[@]}"; do
-    IP=$(az network public-ip show \
-        --resource-group "$RG" \
-        --name public-ip-$VM \
-        --query ipAddress -o tsv 2>/dev/null || echo "N/A")
-    echo "  $VM : $IP"
+  VM_ID=$(az vm show -g "$RG" -n "$VM" --query id -o tsv)
+
+  az monitor data-collection rule association create \
+    -g "$RG" \
+    --name "assoc-$VM" \
+    --rule dcr-vms \
+    --resource "$VM_ID"
+
 done
 
-echo ""
-echo "VM list:"
-az vm list --resource-group "$RG" -o table
+
+echo "DONE"
