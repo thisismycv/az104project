@@ -1,3 +1,0 @@
-az deployment group validate \
-  --resource-group virtualmachines-rg \
-  --template-file template.json \
