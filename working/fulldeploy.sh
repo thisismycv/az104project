@@ -11,8 +11,8 @@ set -e
 # -------------------------
 RG="virtualmachines-rg"
 LOCATION="eastus"
-ADMIN_USERNAME="azureuser"
-ADMIN_PASSWORD="WiD0GQSv1X1V5Ibv"
+ADMIN_USERNAME=$1
+ADMIN_PASSWORD=$2
 VNET_NAME="example-vnet"
 WORKSPACE="lgvms1"
 VMS=("vm-web" "vm-db" "vm-w11")
@@ -22,7 +22,7 @@ VMS=("vm-web" "vm-db" "vm-w11")
 # -------------------------
 az config set extension.use_dynamic_install=yes_without_prompt
 az config set extension.dynamic_install_allow_preview=true
-az extension add --name monitor-control-service --yes || true
+az extension add --name -control-service --yes || true
 az extension add --name monitor --yes || true
 
 # ============================================================
@@ -152,13 +152,13 @@ for VM in "${VMS[@]}"; do
     echo "Installing Azure Monitor agent on $VM..."
 
     # Linux Agent (safe to run on Windows too, will ignore if OS mismatch)
-    az vm extension set \
-        --resource-group "$RG" \
-        --vm-name "$VM" \
-        --name AzureMonitorLinuxAgent \
-        --publisher Microsoft.Azure.Monitor \
-        --enable-auto-upgrade true \
-        --output none || true
+		    az vm extension set \
+			--resource-group "$RG" \
+			--vm-name "$VM" \
+			--name AzureMonitorLinuxAgent \
+			--publisher Microsoft.Azure.Monitor \
+			--enable-auto-upgrade true \
+			--output none || true			
 
     # Windows Agent
     az vm extension set \

@@ -1,7 +1,7 @@
 #!/bin/bash
 RESOURCE_GROUP="$1"
 LOCATION="eastus"
-TEMPLATE_FILE="deployvm.json"
+TEMPLATE_FILE="$2"
 
 if [[ -z "$RESOURCE_GROUP" ]]; then
   echo "Uso: $0 <resource-group>"

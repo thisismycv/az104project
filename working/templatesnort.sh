@@ -2,6 +2,8 @@
 TEMPLATE_FILE="$1"
 RG="$2"
 
+
+
 # Si no se pasa archivo de parámetros, usa valores por defecto
 if [[ -z "$TEMPLATE_FILE" ]]; then
   echo "Usage: $0 <template.json> [parameters.json]"
