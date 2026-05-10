@@ -23,12 +23,13 @@
     "nsg2": "nsg-subnet2",
 
     "nicWeb": "nic-web",
-    "nicDb": "nic-db",
+    "nicSnort": "nic-snort",
 
     "vmWeb": "vm-web",
-    "vmDb": "vm-db"
+    "vmSnort": "vm-snort"
   },
   "resources": [
+
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2023-05-01",
@@ -52,6 +53,7 @@
         ]
       }
     },
+
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2023-05-01",
@@ -75,6 +77,7 @@
         ]
       }
     },
+
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2023-05-01",
@@ -94,33 +97,32 @@
           {
             "name": "[variables('subnet1')]",
             "properties": {
-              "addressPrefix": "10.0.1.0/24",
-              "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg1'))]"
-              }
+              "addressPrefix": "10.0.1.0/24"
             }
           },
           {
             "name": "[variables('subnet2')]",
             "properties": {
-              "addressPrefix": "10.0.2.0/24",
-              "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg2'))]"
-              }
+              "addressPrefix": "10.0.2.0/24"
             }
           }
         ]
       }
     },
+
     {
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2022-11-01",
       "name": "[variables('nicWeb')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg1'))]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg1'))]"
+        },
         "ipConfigurations": [
           {
             "name": "ipconfig1",
@@ -134,15 +136,20 @@
         ]
       }
     },
+
     {
       "type": "Microsoft.Network/networkInterfaces",
       "apiVersion": "2022-11-01",
-      "name": "[variables('nicDb')]",
+      "name": "[variables('nicSnort')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg2'))]"
       ],
       "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsg2'))]"
+        },
         "ipConfigurations": [
           {
             "name": "ipconfig1",
@@ -156,6 +163,7 @@
         ]
       }
     },
+
     {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2022-11-01",
@@ -197,20 +205,21 @@
         }
       }
     },
+
     {
       "type": "Microsoft.Compute/virtualMachines",
       "apiVersion": "2022-11-01",
-      "name": "[variables('vmDb')]",
+      "name": "[variables('vmSnort')]",
       "location": "[parameters('location')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Network/networkInterfaces', variables('nicDb'))]"
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('nicSnort'))]"
       ],
       "properties": {
         "hardwareProfile": {
           "vmSize": "Standard_B1ms"
         },
         "osProfile": {
-          "computerName": "[variables('vmDb')]",
+          "computerName": "[variables('vmSnort')]",
           "adminUsername": "[parameters('adminUsername')]",
           "adminPassword": "[parameters('adminPassword')]",
           "linuxConfiguration": {
@@ -220,7 +229,7 @@
         "networkProfile": {
           "networkInterfaces": [
             {
-              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicDb'))]"
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('nicSnort'))]"
             }
           ]
         },

@@ -5,117 +5,171 @@
     "location": {
       "type": "string",
       "defaultValue": "eastus"
+    },
+    "adminUsername": {
+      "type": "string"
+    },
+    "adminPassword": {
+      "type": "securestring"
     }
   },
+  "variables": {
+    "vnetName": "example-vnet",
+    "subnetWeb": "subnet1",
+    "subnetSnort": "subnet2",
+    "nsgWeb": "nsg-web",
+    "nsgSnort": "nsg-snort",
+    "nicWeb": "nic-web",
+    "nicSnort": "nic-snort",
+    "vmWeb": "vm-web",
+    "vmSnort": "vm-snort",
+    "allowedIP": "79.155.16.191/32"
+  },
+
   "resources": [
+
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2023-05-01",
-      "name": "nsg-subnet1",
+      "name": "[variables('nsgWeb')]",
       "location": "[parameters('location')]",
       "properties": {
         "securityRules": [
           {
-            "name": "Allow-HTTP-From-10.0.3.0-24",
+            "name": "Allow-SSH-From-MyIP",
             "properties": {
               "priority": 100,
+              "direction": "Inbound",
+              "access": "Allow",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "[variables('allowedIP')]",
+              "destinationAddressPrefix": "*"
+            }
+          },
+          {
+            "name": "Allow-HTTP-From-MyIP",
+            "properties": {
+              "priority": 110,
               "direction": "Inbound",
               "access": "Allow",
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "80",
-              "sourceAddressPrefix": "10.0.3.0/24",
-              "destinationAddressPrefix": "*"
-            }
-          },
-          {
-            "name": "AllowME",
-            "properties": {
-              "priority": 200,
-              "direction": "Inbound",
-              "access": "Allow",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "*",
-              "sourceAddressPrefix": "79.155.16.191",
+              "sourceAddressPrefix": "[variables('allowedIP')]",
               "destinationAddressPrefix": "*"
             }
           }
         ]
       }
     },
+
     {
       "type": "Microsoft.Network/networkSecurityGroups",
       "apiVersion": "2023-05-01",
-      "name": "nsg-subnet2",
+      "name": "[variables('nsgSnort')]",
       "location": "[parameters('location')]",
       "properties": {
         "securityRules": [
           {
-            "name": "AllowFromWSSubnet",
+            "name": "Allow-SSH-From-MyIP",
             "properties": {
               "priority": 100,
               "direction": "Inbound",
               "access": "Allow",
               "protocol": "Tcp",
               "sourcePortRange": "*",
-              "destinationPortRange": "1433",
-              "sourceAddressPrefix": "10.0.1.0/24",
-              "destinationAddressPrefix": "*"
-            }
-          },
-          {
-            "name": "AllowME",
-            "properties": {
-              "priority": 200,
-              "direction": "Inbound",
-              "access": "Allow",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "*",
-              "sourceAddressPrefix": "79.155.16.191",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "[variables('allowedIP')]",
               "destinationAddressPrefix": "*"
             }
           }
         ]
       }
     },
+
     {
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2023-05-01",
-      "name": "example-vnet",
+      "name": "[variables('vnetName')]",
       "location": "[parameters('location')]",
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/networkSecurityGroups','nsg-subnet1')]",
-        "[resourceId('Microsoft.Network/networkSecurityGroups','nsg-subnet2')]"
-      ],
       "properties": {
         "addressSpace": {
-          "addressPrefixes": [
-            "10.0.0.0/16"
-          ]
+          "addressPrefixes": ["10.0.0.0/16"]
         },
         "subnets": [
           {
-            "name": "subnet1",
+            "name": "[variables('subnetWeb')]",
             "properties": {
               "addressPrefix": "10.0.1.0/24",
               "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups','nsg-subnet1')]"
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgWeb'))]"
               }
             }
           },
           {
-            "name": "subnet2",
+            "name": "[variables('subnetSnort')]",
             "properties": {
               "addressPrefix": "10.0.2.0/24",
               "networkSecurityGroup": {
-                "id": "[resourceId('Microsoft.Network/networkSecurityGroups','nsg-subnet2')]"
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgSnort'))]"
               }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgWeb'))]",
+        "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgSnort'))]"
+      ]
+    },
+
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2022-11-01",
+      "name": "[variables('nicWeb')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetWeb'))]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
+            }
+          }
+        ]
+      }
+    },
+
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2022-11-01",
+      "name": "[variables('nicSnort')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]"
+      ],
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetSnort'))]"
+              },
+              "privateIPAllocationMethod": "Dynamic"
             }
           }
         ]
       }
     }
+
   ]
 }
