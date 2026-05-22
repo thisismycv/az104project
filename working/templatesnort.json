@@ -7,7 +7,7 @@
       "defaultValue": "eastus"
     },
     "adminUsername": {
-      "type": "string"
+      "type": "st   ring"
     },
     "adminPassword": {
       "type": "securestring"
@@ -141,7 +141,10 @@
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetWeb'))]"
               },
-              "privateIPAllocationMethod": "Dynamic"
+              "privateIPAllocationMethod": "Dynamic",
+	     "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgWeb'))]"
+              }
             }
           }
         ]
@@ -163,6 +166,9 @@
             "properties": {
               "subnet": {
                 "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', variables('vnetName'), variables('subnetSnort'))]"
+              },
+	      "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgWeb'))]"
               },
               "privateIPAllocationMethod": "Dynamic"
             }

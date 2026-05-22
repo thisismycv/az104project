@@ -10,7 +10,7 @@ CREATE TABLE users (
     password varchar(24) NOT NULL,
     money INT DEFAULT 1000
 );
-
+ALTER TABLE users MODIFY password VARCHAR(255);
 DROP USER IF EXISTS 'web';
 CREATE USER 'web' IDENTIFIED by 'web';
 GRANT ALL PRIVILEGES on registros.* TO 'web';

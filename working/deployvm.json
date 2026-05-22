@@ -158,7 +158,7 @@
           "imageReference": {
             "publisher": "MicrosoftWindowsDesktop",
             "offer": "windows-11",
-            "sku": "win11-23h2-pro",
+            "sku": "win11-24h2-pro",
             "version": "latest"
           },
           "osDisk": { "createOption": "FromImage", "diskSizeGB": 127 }
