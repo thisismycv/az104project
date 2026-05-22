@@ -1,0 +1,72 @@
+ #Deploy networking
+ ./createrg.sh virtualmachines-rg eastus
+ ./templatenetworking.sh templatenetworking.json virtualmachines-rg
+ #Check -> az resource list -o table
+
+#Deploy VM's.
+./deployvm.sh virtualmachines-rg deployvm.json
+:
+
+#Assign public IP's.
+./assign_public_ip.sh virtualmachines-rg vm-web web-ip eastus -> 20.124.115.239	
+./assign_public_ip.sh virtualmachines-rg vm-db db-ip eastus -> 13.72.82.112	
+
+ALTER TABLE users MODIFY password VARCHAR(255);
+sudo apt update -y; apt install php-mysql -y php mariadb-client mariadb-server apache2 vim git
+
+az vm extension set \
+        --resource-group "virtualmachines-rg" \
+        --vm-name "vm-web" \	
+        --name AzureMonitorLinuxAgent \
+        --publisher Microsoft.Azure.Monitor \
+        --enable-auto-upgrade true \
+        --output none || true
+        
+az vm extension set \
+        --resource-group "virtualmachines-rg" \
+        --vm-name "vm-db" \
+        --name AzureMonitorLinuxAgent \
+        --publisher Microsoft.Azure.Monitor \
+        --enable-auto-upgrade true \
+        --output none || true
+
+
+
+az monitor log-analytics workspace create --resource-group virtualmachines-rg   --workspace-name lgws-vm
+
+
+az monitor log-analytics workspace table create \
+  --resource-group virtualmachines-rg \
+  --workspace-name lgws-vm \
+  --name ApacheAccess_CL \
+  --columns \
+    TimeGenerated=datetime \
+    ClientIP=string \
+    RequestTime=datetime \
+    Method=string \
+    UriStem=string \
+    HttpVersion=string \
+    StatusCode=int \
+    BytesSent=int \
+    Referer=string \
+    UserAgent=string
+
+
+
+
+    
+PORT SCAN:
+// Real external traffic only, parse key fields
+Syslog
+| where TimeGenerated > ago(1h)
+| where Facility == "kern"
+| where SyslogMessage contains "IPTABLES-IN"
+| where SyslogMessage !contains "IN=lo"  // exclude loopback noise
+| extend SrcIP = extract(@"SRC=([\d\.]+)", 1, SyslogMessage)
+| extend DstPort = extract(@"DPT=(\d+)", 1, SyslogMessage)
+| extend Proto = extract(@"PROTO=(\w+)", 1, SyslogMessage)
+| extend InIface = extract(@"IN=(\w+)", 1, SyslogMessage)
+| summarize PortsScanned = dcount(DstPort), Attempts = count(), Ports = make_set(DstPort) 
+    by SrcIP, Proto, bin(TimeGenerated, 5m)
+| where PortsScanned > 3
+| order by Attempts desc
