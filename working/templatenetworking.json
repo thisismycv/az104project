@@ -15,34 +15,35 @@
       "location": "[parameters('location')]",
       "properties": {
         "securityRules": [
-          {
-            "name": "Allow-HTTP-From-10.0.3.0-24",
-            "properties": {
-              "priority": 100,
-              "direction": "Inbound",
-              "access": "Allow",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "80",
-              "sourceAddressPrefix": "10.0.3.0/24",
-              "destinationAddressPrefix": "*"
-            }
-          },
-          {
-            "name": "AllowME",
-            "properties": {
-              "priority": 200,
-              "direction": "Inbound",
-              "access": "Allow",
-              "protocol": "Tcp",
-              "sourcePortRange": "*",
-              "destinationPortRange": "*",
-              "sourceAddressPrefix": "79.152.229.170",
-              "destinationAddressPrefix": "*"
-            }
-          }
-        ]
+      		{
+  "name": "Allow-HTTP-Public",
+  "properties": {
+    "priority": 100,
+    "direction": "Inbound",
+    "access": "Allow",
+    "protocol": "Tcp",
+    "sourcePortRange": "*",
+    "destinationPortRange": "80",
+    "sourceAddressPrefix": "*",
+    "destinationAddressPrefix": "*"
+  }
+},
+{
+  "name": "AllowME",
+  "properties": {
+    "priority": 200,
+    "direction": "Inbound",
+    "access": "Allow",
+    "protocol": "Tcp",
+    "sourcePortRange": "*",
+    "destinationPortRange": "*",
+    "sourceAddressPrefix": "79.152.229.170",
+    "destinationAddressPrefix": "*"
+  }
+}
+      
       }
+
     },
     {
       "type": "Microsoft.Network/networkSecurityGroups",
