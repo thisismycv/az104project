@@ -37,7 +37,7 @@
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "*",
-              "sourceAddressPrefix": "79.152.229.170",
+              "sourceAddressPrefix": "79.155.20.104",
               "destinationAddressPrefix": "*"
             }
           }
@@ -73,7 +73,7 @@
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "*",
-              "sourceAddressPrefix": "79.152.229.170",
+              "sourceAddressPrefix": "79.155.20.104",
               "destinationAddressPrefix": "*"
             }
           }
@@ -96,7 +96,7 @@
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "*",
-              "sourceAddressPrefix": "79.152.229.170",
+              "sourceAddressPrefix": "79.155.20.104",
               "destinationAddressPrefix": "*"
             }
           }
