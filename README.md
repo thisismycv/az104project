@@ -220,3 +220,11 @@ Admin status is re-queried from the `user_admins` table on every request rather 
 ---
 
 *Built for AZ-104 exam preparation — Azure East US · Resource Group: `virtualmachines-rg`*
+
+---
+
+pics:
+
+
+
+
