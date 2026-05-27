@@ -1,4 +1,15 @@
 <?php
+<?php
+// Content-Security-Policy (already added)
+header("Content-Security-Policy: ...");
+
+// ── Session cookie hardening ──────────────────────────────────────
+ini_set('session.cookie_httponly', 1);   // JS cannot read the cookie (blocks XSS theft)
+ini_set('session.cookie_secure', 1);     // Cookie only sent over HTTPS, never HTTP
+ini_set('session.cookie_samesite', 'Strict'); // Cookie never sent on cross-site requests
+ini_set('session.use_strict_mode', 1);   // Reject unrecognised session IDs from client
+ini_set('session.cookie_lifetime', 0);   // Cookie dies when browser closes (no persistence)
+
 session_start();
 
 function openHTML($title)
