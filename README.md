@@ -230,10 +230,6 @@ pics:
 
 
 
-![Image 2](./Pics/image-2.png)
-
-
-
 
 ![Port Scan](./Pics/portscan.png)
 
