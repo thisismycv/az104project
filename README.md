@@ -224,13 +224,6 @@ Admin status is re-queried from the `user_admins` table on every request rather 
 ---
 
 pics:
-![Image](./Pics/image.png)
-
-
-
-
-![Image 1](./Pics/image-1.png)
-
 
 
 
